@@ -59,4 +59,18 @@ Interview line: *"K8s concepts + ran it locally with Helm; on AWS I'd use EKS, o
 Cost guard: free tier · destroy/terminate at the end of every session.
 
 ## Session notes
-_(filled in after each hands-on block)_
+
+### 10 Nov 2026 — account + IAM setup (hands-on)
+- Old account permanently closed (May 2025) → AWS never reuses an email → new account via Gmail `+aws` alias.
+- Root: MFA on, no access keys, $5/month budget. Root only for account-level jobs.
+- `rahul-admin` (IAM user, group `admin` = `AdministratorAccess`) → my daily identity, console + CLI. TODO: MFA.
+- CLI 2.15 → 2.39.7. `aws login` = browser sign-in → **temporary** creds (12 h, renew up to 90 days), no access keys on disk.
+- Gotchas hit:
+  - `aws login` silently reused the open **root** browser session → profile became root. Fix: `aws logout --profile X`, sign out in browser, log in again. Same thing happened again with `rahul-admin` → `claude-readonly`.
+  - IAM user needs `SignInLocalDevelopmentAccess` (or admin) for `aws login`; root needs nothing. Console sign-in worked, CLI login didn't → that was the reason.
+  - `--remote` = code-paste flow → must run in a real terminal (not a non-interactive shell).
+  - Policy search: `AgentRegistryReadOnlyAccess` ≠ `ReadOnlyAccess`. Filter "AWS managed - job function" to find `ReadOnlyAccess` / `ViewOnlyAccess`.
+- **Least privilege for the AI assistant:** `claude-readonly` (IAM user, `ViewOnlyAccess` = see what exists + config, not contents). AWS MCP runs as this profile (`AWS_MCP_PROXY_PROFILES` in `~/.claude.json`).
+  Tested: `ec2:DescribeInstances` OK · `ec2:CreateSecurityGroup` (DryRun) → **UnauthorizedOperation** "no identity-based policy allows".
+  Plus Claude Code deny rules: no `aws` CLI, no `~/.aws`, no `terraform apply/destroy` → I change, Claude reads.
+- Bonus: every call via an AWS MCP server carries `aws:ViaAWSMCPService=true` → can Deny writes "only when via MCP" in a policy.
