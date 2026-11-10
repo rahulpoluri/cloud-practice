@@ -5,6 +5,7 @@ Written in my own words, organised by topic.
 
 ## AWS
 - [Services map](01-aws/README.md) — the ~8 services a backend actually uses, security + monitoring services, a URL shortener mapped to AWS
+- [Networking basics → VPC](01-aws/vpc.md) — IP/MAC/NAT, CIDR with full ranges, subnets, route tables, public vs private, Internet/NAT Gateway
 - [IAM](01-aws/iam.md) — identities, policies, how AWS decides allow/deny, CLI sign-in, least privilege for automation and AI agents
 
 ## Kubernetes vs AWS
