@@ -1,76 +1,61 @@
-# AWS basics — map (10 Nov 2026)
+# AWS — services map
 
-200+ services, a backend dev deploying an app uses ~8. ★ = learn now, the rest = know it exists.
-Method: concept by talking (explain back) → do it by hand in the console → short notes here. Maarek course = reference only, not front-to-back.
+AWS has 200+ services; a backend developer deploying an app uses about 8 (★). The rest: know they exist.
 
-## Your URL shortener on AWS
+## A URL shortener on AWS
 ```
-DNS → Route 53 · Nginx pair → ELB · app servers → EC2 in an ASG (or ECS/Fargate)
+DNS → Route 53 · Nginx pair → ELB · app servers → EC2 in an Auto Scaling Group (or ECS/Fargate)
 Redis → ElastiCache · Postgres → RDS · Kafka → MSK · Cassandra → Keyspaces
 everything inside one VPC · permissions via IAM · TLS via ACM · alerts via CloudWatch → SNS
 ```
 
-## Map by category
-| Category | What it's for | Services (★ = core 8) |
+## By category
+| Category | What it's for | Services (★ = core) |
 |---|---|---|
 | Security | who can do what | ★ **IAM**, KMS, Secrets Manager |
 | Network | where boxes live, who reaches them | ★ **VPC** (subnets, security groups), Route 53, CloudFront |
-| Compute | running code | ★ **EC2**, ★ **ECS/Fargate**, EKS (managed K8s, ~$73/mo idle), Lambda |
+| Compute | running code | ★ **EC2**, ★ **ECS/Fargate**, EKS (managed K8s), Lambda |
 | Traffic | spreading load, scaling | ★ **ELB**, ★ **Auto Scaling Group** |
 | Data | storing things | ★ **RDS**, ★ **ElastiCache**, ★ **S3**, DynamoDB, Keyspaces |
 | Ops | watching, messaging | CloudWatch, SQS/SNS, MSK (Kafka) |
 
-## Security
-| Service | What | In the URL shortener |
+## Security services
+| Service | What | Example |
 |---|---|---|
-| ★ **IAM** | users, roles, policies — who can call which AWS API | app server's role reads the DB secret, nothing else |
+| ★ **IAM** | users, roles, policies — who can call which AWS API → [IAM](iam.md) | app server's role reads the DB secret, nothing else |
 | ★ **Security groups** | firewall per instance (stateful, allow-only) | DB accepts 5432 only from app servers |
 | NACLs | firewall per subnet (stateless, allow + deny) | rarely touched |
 | ★ **Secrets Manager** / SSM Parameter Store | secrets out of code | Postgres password, JWT key |
-| ★ **ACM** | free auto-renewed TLS certs | HTTPS on the LB |
+| ★ **ACM** | free auto-renewed TLS certificates | HTTPS on the load balancer |
 | KMS | encryption keys | RDS / S3 encryption at rest |
-| WAF | web firewall: IP block, rate limit, SQLi | `429` at the edge |
-| Shield | DDoS protection (basic = free) | protects the LB |
-| Cognito | managed sign-up/login | alternative to own JWT auth |
-| GuardDuty / Inspector / Security Hub | threats, vuln scans, overview | security-team tools — know names |
+| WAF | web firewall: IP block, rate limit, SQL injection | `429` at the edge |
+| Shield | DDoS protection (basic = free) | protects the load balancer |
+| Cognito | managed sign-up/login for **your app's** users | alternative to own JWT auth |
+| GuardDuty / Inspector / Security Hub | threats, vulnerability scans, overview | security-team tools |
 | **CloudTrail** | audit log of every AWS API call | "who deleted the DB?" |
 
-## Monitoring
-| Service | What | In the URL shortener |
+## Monitoring services
+| Service | What | Example |
 |---|---|---|
-| ★ **CloudWatch Metrics** | CPU, requests, latency | ASG scaling metric, p99 |
+| ★ **CloudWatch Metrics** | CPU, requests, latency | autoscaling metric, p99 |
 | ★ **CloudWatch Logs** | app + system logs | FastAPI logs |
 | ★ **CloudWatch Alarms → SNS** | threshold → alert | p99 > 100 ms for 5 min |
 | CloudWatch Dashboards | graphs | redirects/s, cache hit ratio |
 | X-Ray | distributed tracing | app → Redis → Postgres timing |
-| Managed Prometheus / Grafana | open-source stack, AWS-run | if team uses Prometheus |
-| AWS Config | resource setting history + rules | "was this bucket ever public?" |
+| Managed Prometheus / Grafana | open-source stack, run by AWS | if the team uses Prometheus |
+| AWS Config | history of resource settings + rule checks | "was this bucket ever public?" |
 
 **Don't mix up:** CloudWatch = your app's health · CloudTrail = who did what in the AWS account.
 
-## Kubernetes vs AWS
-K8s is open source, runs anywhere. AWS options: **ECS/Fargate** (AWS's own, simpler) or **EKS** (managed K8s). Learn K8s locally with **kind** (free).
-Interview line: *"K8s concepts + ran it locally with Helm; on AWS I'd use EKS, or ECS if the team doesn't need K8s."*
+## Cognito vs IAM
+| | IAM users | Your app's users |
+|---|---|---|
+| Who | engineers, CI/CD, servers | people signing up on your website |
+| Controls | access to **AWS itself** | access to **your app** |
+| Stored in | IAM | your own `users` table, or **Cognito** |
 
-## Half-day plan
-1. **AWS** — IAM · VPC/SG · EC2 · ELB/ASG → EC2 + Nginx by hand → **terminate**
-2. **Terraform** — docker provider (local) → same EC2 from code → `destroy`
-3. **Kubernetes** — kind, FastAPI image, 3 replicas, service
-Cost guard: free tier · destroy/terminate at the end of every session.
+Cognito user pools: sign-up/login, hashed passwords, reset, MFA, social/SSO login, issues JWTs (ID / access / refresh). Can put groups/roles in the token — but ownership checks ("is this link yours?") stay in app code. Alternatives: Auth0, Keycloak, Clerk.
 
-## Session notes
-
-### 10 Nov 2026 — account + IAM setup (hands-on)
-- Old account permanently closed (May 2025) → AWS never reuses an email → new account via Gmail `+aws` alias.
-- Root: MFA on, no access keys, $5/month budget. Root only for account-level jobs.
-- `rahul-admin` (IAM user, group `admin` = `AdministratorAccess`) → my daily identity, console + CLI. TODO: MFA.
-- CLI 2.15 → 2.39.7. `aws login` = browser sign-in → **temporary** creds (12 h, renew up to 90 days), no access keys on disk.
-- Gotchas hit:
-  - `aws login` silently reused the open **root** browser session → profile became root. Fix: `aws logout --profile X`, sign out in browser, log in again. Same thing happened again with `rahul-admin` → `claude-readonly`.
-  - IAM user needs `SignInLocalDevelopmentAccess` (or admin) for `aws login`; root needs nothing. Console sign-in worked, CLI login didn't → that was the reason.
-  - `--remote` = code-paste flow → must run in a real terminal (not a non-interactive shell).
-  - Policy search: `AgentRegistryReadOnlyAccess` ≠ `ReadOnlyAccess`. Filter "AWS managed - job function" to find `ReadOnlyAccess` / `ViewOnlyAccess`.
-- **Least privilege for the AI assistant:** `claude-readonly` (IAM user, `ViewOnlyAccess` = see what exists + config, not contents). AWS MCP runs as this profile (`AWS_MCP_PROXY_PROFILES` in `~/.claude.json`).
-  Tested: `ec2:DescribeInstances` OK · `ec2:CreateSecurityGroup` (DryRun) → **UnauthorizedOperation** "no identity-based policy allows".
-  Plus Claude Code deny rules: no `aws` CLI, no `~/.aws`, no `terraform apply/destroy` → I change, Claude reads.
-- Bonus: every call via an AWS MCP server carries `aws:ViaAWSMCPService=true` → can Deny writes "only when via MCP" in a policy.
+## Cloud-native
+Built *for* the cloud: containers · stateless services · managed services for commodity parts (DB ops, auth, queues) · elastic scaling · infrastructure as code + CI/CD · designed for failure + observability. You still write the business logic.
+> "Buy the commodity, build the differentiator."

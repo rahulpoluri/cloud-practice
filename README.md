@@ -1,13 +1,12 @@
-# Cloud Practice
+# Cloud Practice — knowledge base
 
-Hands-on basics for deploying a backend: AWS → Terraform → Kubernetes, one half-day block each.
-Method: concept by talking (explain back) → do it by hand → short notes here. Courses = reference only.
-Cost guard: free tier · `terminate` / `destroy` at the end of every session.
+What I know about running backend services in the cloud: concepts, how things fit together, commands, and pitfalls I hit hands-on.
+Written in my own words, organised by topic.
 
-| # | Topic | Done = | Status |
-|---|---|---|---|
-| 01 | [AWS](01-aws/README.md) | EC2 + Nginx by hand, reachable in the browser, then terminated | ⬜ starts 10 Nov 16:00 |
-| 02 | Terraform | same EC2 from code (docker provider first), `destroy` + recreate in one command | ⬜ |
-| 03 | Kubernetes | FastAPI image on kind, 3 replicas, service on localhost | ⬜ |
+## AWS
+- [Services map](01-aws/README.md) — the ~8 services a backend actually uses, security + monitoring services, a URL shortener mapped to AWS
+- [IAM](01-aws/iam.md) — identities, policies, how AWS decides allow/deny, CLI sign-in, least privilege for automation and AI agents
 
-Next: these feed one project — FastAPI + RAG service → Docker → AWS via Terraform → K8s → observability.
+## Kubernetes vs AWS
+Kubernetes is open source and runs anywhere. On AWS: **ECS/Fargate** (AWS's own, simpler) or **EKS** (managed K8s, control plane costs ~$73/month even idle). Concepts can be learned locally with **kind** for free.
+> "I know the K8s concepts and ran it locally with Helm; on AWS I'd use EKS, or ECS when the team doesn't need K8s."

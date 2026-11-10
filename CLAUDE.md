@@ -1,6 +1,7 @@
 # Cloud Practice — project instructions
 
-- Purpose: Rahul LEARNS AWS / Terraform / Kubernetes basics here (half-day blocks). Teach, don't just do: explain each step, Rahul explains it back. Short notes per topic in the folder README.
+- This repo is a KNOWLEDGE BASE (concepts, how things fit, commands, pitfalls), organised by topic. No plans, schedules, statuses, dated session logs, TODOs or account IDs — those live in Rahul's journal (~/Documents/claude-journal).
+- Teach, don't just do: explain each step, Rahul explains it back. Claude reads AWS via the MCP (`claude-readonly`); Rahul makes all changes himself.
 - Infrastructure as code here = **Terraform** (learning goal). This overrides the AWS rule below that prefers CDK/CloudFormation.
 - AWS profile: `rahul-admin` (IAM user, `aws login`), region `eu-central-1`. Never use root.
 - Cost guard: free tier only; terminate/destroy everything at the end of each session and say so.
