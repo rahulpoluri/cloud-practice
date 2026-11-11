@@ -13,9 +13,9 @@ everything inside one VPC · permissions via IAM · TLS via ACM · alerts via Cl
 | Category | What it's for | Services (★ = core) |
 |---|---|---|
 | Security | who can do what | ★ **IAM**, KMS, Secrets Manager |
-| Network | where boxes live, who reaches them | ★ **VPC** (subnets, security groups), Route 53, CloudFront |
-| Compute | running code | ★ **EC2**, ★ **ECS/Fargate**, EKS (managed K8s), Lambda |
-| Traffic | spreading load, scaling | ★ **ELB**, ★ **Auto Scaling Group** |
+| Network | where boxes live, who reaches them | ★ **VPC** (subnets, security groups) → [VPC](vpc.md), Route 53, CloudFront |
+| Compute | running code | ★ **EC2** → [EC2](ec2.md), ★ **ECS/Fargate**, EKS (managed K8s), Lambda |
+| Traffic | spreading load, scaling | ★ **ELB**, ★ **Auto Scaling Group** → [ELB + ASG](elb-asg.md) |
 | Data | storing things | ★ **RDS**, ★ **ElastiCache**, ★ **S3**, DynamoDB, Keyspaces |
 | Ops | watching, messaging | CloudWatch, SQS/SNS, MSK (Kafka) |
 

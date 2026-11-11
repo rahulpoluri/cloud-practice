@@ -75,3 +75,61 @@ Internet → Internet Gateway
   [private subnets, AZ-a + AZ-b]  app servers → Redis, Postgres
 ```
 > "Only the load balancer is public; everything else is in private subnets across two AZs, going out through NAT."
+
+## Route table targets (AWS)
+| Target | Prefix | Used for |
+|---|---|---|
+| local | `local` | traffic inside the VPC — always there, can't delete |
+| Internet Gateway | `igw-` | public subnet: `0.0.0.0/0 → igw` |
+| NAT Gateway | `nat-` | private subnet: `0.0.0.0/0 → nat` |
+| VPC peering | `pcx-` | another VPC, e.g. `10.1.0.0/16 → pcx` |
+| VPN gateway | `vgw-` | office / on-prem network |
+| Transit Gateway | `tgw-` | hub connecting many VPCs |
+| Gateway endpoint | `vpce-` + prefix list `pl-` | S3 / DynamoDB without internet |
+
+Longest prefix wins: `10.0.11.0/24` beats `10.0.0.0/16` beats `0.0.0.0/0`.
+**Route table = the road map (can the packet get there?). Security group = the bouncer (is it allowed in?).**
+
+## Security group vs NACL
+| | Security group | NACL |
+|---|---|---|
+| Attached to | instance (its network card, ENI) | subnet |
+| Rules | allow only | allow + deny, numbered, first match wins |
+| State | **stateful** — reply traffic allowed automatically | **stateless** — must allow return traffic (ephemeral ports `1024 – 65535`) too |
+| Default | deny all in, allow all out | default NACL allows everything |
+| Used for | everyday firewall | blocking a bad IP range, compliance "deny" rules |
+
+**SG can reference another SG:** `db-sg: allow 5432 from app-sg` = only instances wearing the `app-sg` badge; covers instances autoscaling adds later, no IPs needed.
+⚠️ Instances in the same SG can **not** talk to each other automatically — only the VPC's **default** SG has that self-referencing rule. For a custom SG, add `allow from <itself>` explicitly.
+
+## Debug ladder — what the error tells you
+| You see | Layer | Check |
+|---|---|---|
+| **timeout** | network — packet dropped silently | SG inbound rule (port + your IP) → public IP? → route `0.0.0.0/0 → igw`? → NACL |
+| **connection refused** | machine reached, nothing listening on that port | is the app/Nginx running? right port? |
+| **HTTP 404 / 500 / 502** | the app answered | app code, config, upstream |
+
+## Elastic IP
+Fixed public IPv4 that stays when the instance stops/restarts (a normal auto-assigned public IP is released on stop and changes on start).
+- Needed for: NAT Gateway, partners who whitelist your IP, DNS records pointing straight at an instance.
+- Not needed behind a load balancer: the ALB has a stable **DNS name** (`my-alb-123.eu-central-1.elb.amazonaws.com`) → Route 53 **alias** record points your domain at it. Need fixed IPs for the LB → NLB with EIPs, or Global Accelerator.
+- 💸 Every public IPv4 costs $0.005/h (~$3.60/month), including EIPs left idle.
+
+## VPC endpoints — reach AWS services without internet
+Many AWS services live **outside** your VPC with public endpoints, protected by IAM: S3, DynamoDB, SQS, SNS, ECR, Secrets Manager, CloudWatch. Services **inside** your VPC: EC2, RDS, ElastiCache, load balancers.
+
+A private instance reaching S3 normally goes via NAT (paid per GB). Endpoints avoid that:
+| | Gateway endpoint | Interface endpoint (PrivateLink) |
+|---|---|---|
+| Services | S3, DynamoDB only | most others (SQS, ECR, Secrets Manager…) |
+| How | entry in the route table (`pl-… → vpce-…`) | a network card with a private IP in your subnet |
+| Cost | **free** | ~$0.01/h per AZ + per GB |
+
+Other NAT alternatives: egress-only internet gateway (IPv6 only, free), NAT instance (cheap EC2 doing NAT, you manage it).
+
+## Costs
+| Free | Paid |
+|---|---|
+| IAM, VPC, subnets, route tables, Internet Gateway, SGs, NACLs, gateway endpoints, inbound data | NAT Gateway (~$0.05/h + per GB), public IPv4 ($0.005/h, incl. idle EIPs), interface endpoints, data out to internet (first 100 GB/month free), **cross-AZ** traffic (~$0.01/GB each way) |
+
+**Saving in production:** gateway endpoints for S3/DynamoDB · one shared NAT in dev (one per AZ only in prod) · keep chatty services in the same AZ · CloudFront in front for egress · instances in private subnets behind an ALB (no public IPs) · release unused EIPs · stop non-prod at night/weekends · tags + Budgets + Cost Anomaly Detection · IAM/SCP guardrails on expensive instance types.
