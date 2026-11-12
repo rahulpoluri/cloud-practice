@@ -43,4 +43,12 @@ Keeps the right number of instances running.
 - **Scaling policies:** target tracking ("keep average CPU at 50%"), step scaling, scheduled (more at 09:00), predictive.
 - ASG ↔ ALB: new instances are registered in the target group automatically, removed ones deregistered. Use **ELB health checks** on the ASG so an app failure (not just a dead VM) triggers replacement.
 
+### Common mix-ups
+- ❌ "ELB is basically Nginx." → Same job, but **managed**: no server to run, patch or scale; AWS spreads it across AZs.
+- ❌ "ASG only repairs / keeps the minimum." → Two jobs: **self-healing** (back to desired) **and scaling** (policy changes desired with load).
+- ❌ "ASG needs an AMI." → It needs a **launch template**; the AMI is one part of it (plus type, SG, user data, IAM role). User data must set the app up — nobody SSHs in at 3 a.m.
+- ❌ "Scale on memory" out of the box. → EC2 reports CPU/network by default; memory needs the **CloudWatch agent**.
+- ❌ "Request → load balancer → checks → target group." → **Listener → rules → target group → healthy instance.** Health checks run continuously in the background, not per request.
+- ❌ Pin `app-sg` to the ALB's IP. → ALB IPs change (it scales internally) → reference **`alb-sg`**.
+
 ⚠️ Terminating ASG instances by hand doesn't stop them — the ASG brings them back. To shut down: set desired/min to 0, or delete the ASG.
