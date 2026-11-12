@@ -102,6 +102,14 @@ Longest prefix wins: `10.0.11.0/24` beats `10.0.0.0/16` beats `0.0.0.0/0`.
 **SG can reference another SG:** `db-sg: allow 5432 from app-sg` = only instances wearing the `app-sg` badge; covers instances autoscaling adds later, no IPs needed.
 ⚠️ Instances in the same SG can **not** talk to each other automatically — only the VPC's **default** SG has that self-referencing rule. For a custom SG, add `allow from <itself>` explicitly.
 
+**Memory hook:** route table = the **roads** · NACL = **NaCl, table salt** — sprinkled over the whole subnet, no memory (stateless), can ruin the dish (deny) = roadblock at the neighbourhood entrance · security group = **bouncer** at each house with a guest list only (allow-only, remembers who came in = stateful).
+
+### Common mix-ups
+- ❌ "iptables = route table." → On Linux too they're different: `ip route` = route table (where does the packet go?), `iptables`/nftables = firewall + NAT (≈ SG/NACL/NAT GW). Don't say "IP tables" for the AWS route table.
+- ❌ "Public = reachable from the internet" (without the why). → Public **because** its route table has `0.0.0.0/0 → igw-…`. No checkbox.
+- ❌ "/16 = 16 bytes free." → **Bits**, and the slash counts the **fixed** part: `/16` = 16 fixed, 32 − 16 = 16 free → 65,536 (10.0.0.0 – 10.0.255.255). Bigger slash = smaller network.
+- ❌ "A subnet spans the AZs" / "one subnet per AZ." → VPC spans the **region**; each subnet sits in exactly **one** AZ; an AZ can hold **many** subnets (public + private). Region ≈ 3+ AZs, AZ = 1+ data centres.
+
 ## Debug ladder — what the error tells you
 | You see | Layer | Check |
 |---|---|---|
