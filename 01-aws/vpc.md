@@ -88,6 +88,10 @@ Internet → Internet Gateway
 | Gateway endpoint | `vpce-` + prefix list `pl-` | S3 / DynamoDB without internet |
 
 Longest prefix wins: `10.0.11.0/24` beats `10.0.0.0/16` beats `0.0.0.0/0`.
+
+Read a route as a sentence: **"packets going TO [destination] leave THROUGH [target]."** Destination = where the packet is *going* (for a reply: the client's IP), not "my network". `172.31.0.0/16 → igw` is rejected — the VPC's own range is always `local`. `local` covers the **whole VPC**, so all subnets reach each other. No allow/deny, no in/out — only "which way".
+
+**Associations:** every subnet uses exactly one route table. Not assigned → **implicit**, uses the **main** table. **Explicit** association → that table wins. Remove it → back to main. Can't delete a route table while a subnet is associated → detach first.
 **Route table = the road map (can the packet get there?). Security group = the bouncer (is it allowed in?).**
 
 ## Security group vs NACL
@@ -116,6 +120,18 @@ Longest prefix wins: `10.0.11.0/24` beats `10.0.0.0/16` beats `0.0.0.0/0`.
 | **timeout** | network — packet dropped silently | SG inbound rule (port + your IP) → public IP? → route `0.0.0.0/0 → igw`? → NACL |
 | **connection refused** | machine reached, nothing listening on that port | is the app/Nginx running? right port? |
 | **HTTP 404 / 500 / 502** | the app answered | app code, config, upstream |
+
+### Each layer broken on purpose (EC2 + Nginx, default VPC)
+| Broke | Browser | SSH | Why |
+|---|---|---|---|
+| SG: inbound 80 removed | timeout | works | SG drops silently, port-specific |
+| `systemctl stop nginx` | **refused** | works | packet arrived, nothing listening |
+| Subnet → route table without `0.0.0.0/0 → igw` | timeout | timeout | request may arrive, the **reply** has no road out |
+| NACL inbound `#50 deny TCP 80 from <my IP>/32` | timeout | works | #50 checked before #100 allow |
+| NACL outbound `#50 deny all to <my IP>/32` | timeout | timeout | stateless: reply checked separately — an SG never blocks a reply |
+
+**Rule of thumb:** one port dead, others fine → SG/NACL port rule. Everything dead → route table / public IP / NACL "all". Refused → the app.
+NACL rule numbers: you choose them; lowest first, first match wins; leave gaps (50, 100…) to insert later.
 
 ## Elastic IP
 Fixed public IPv4 that stays when the instance stops/restarts (a normal auto-assigned public IP is released on stop and changes on start).

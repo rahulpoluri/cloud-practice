@@ -53,6 +53,20 @@ Network drive attached to the instance (not a disk inside the machine).
 | **Terminate** | gone forever | deleted (default "Delete on termination") | nothing |
 - Normal public IP changes on stop/start; private IP stays.
 - Snapshots = backups of a volume, stored in S3 (paid per GB).
+- ⚠️ Console trap: **Stop** sits right next to **Terminate** → after "terminating", check the state really says `terminated`.
+- Root volume: Delete on termination = **true** by default. **Extra** volumes you add: **false** by default → they survive and keep billing.
+- After terminate, check nothing bills: volumes · Elastic IPs (idle = charged hourly) · snapshots · NAT Gateways. SG + key pair are free.
+
+## Nginx by hand (Amazon Linux 2023)
+```bash
+sudo dnf install -y nginx            # dnf = package manager (apt on Ubuntu)
+sudo systemctl enable --now nginx    # start now + on every boot
+systemctl status nginx               # active (running)?
+curl localhost                       # test from inside the box
+ss -tlnp                             # what is listening on which port
+```
+Then `http://<public-IP>` (http, no cert). SSH (22) = for you to get in and set up; 80 = for visitors.
+⚠️ Don't restrict the SG **outbound** to your own IP — the instance then can't reach package repos (`dnf install` hangs). Outbound "all → 0.0.0.0/0" is normal; inbound does the filtering.
 
 ## User data
 Script that runs **once, as root, on first boot**.
