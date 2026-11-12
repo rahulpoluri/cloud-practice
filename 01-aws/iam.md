@@ -62,6 +62,14 @@ Example: user policy allows GET, group allows GET + PUT → **GET + PUT**. To bl
 
 A role = a uniform: **trust policy** = who may wear it (e.g. `"Principal": {"Service": "ec2.amazonaws.com"}`, `"Action": "sts:AssumeRole"`), **permissions policy** = what the wearer may do.
 
+### Common mix-ups
+- ❌ "Policies are for users, roles are for machines." → Users **and** roles are both *identities*; policies attach to both. Role = identity, policy = permissions.
+- ❌ "A role is how two EC2s talk to each other." → Typical case: a machine calling an **AWS service** (EC2 → S3). EC2-to-EC2 network traffic is security groups, not IAM.
+- ❌ "Roles are only for machines." → Mostly, but humans assume them too (cross-account access, SSO).
+- ❌ Forgetting the trust policy → the role exists with permissions but **nobody can assume it** (keys locked in the car). Users don't need one; they *are* the login.
+- ❌ "One policy per user." → A user can have several policies directly **plus** everything from all its groups; they add up.
+- ❌ "Custom = inline." → Custom policies are usually **customer managed** (standalone, reusable); inline is a separate type, embedded in one identity.
+
 ## Managed vs inline
 | Type | What | Use |
 |---|---|---|
