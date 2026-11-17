@@ -8,6 +8,11 @@ Written in my own words, organised by topic.
 - [Networking basics → VPC](01-aws/vpc.md) — IP/MAC/NAT, CIDR with full ranges, subnets, route tables, public vs private, Internet/NAT Gateway
 - [IAM](01-aws/iam.md) — identities, policies, how AWS decides allow/deny, CLI sign-in, least privilege for automation and AI agents
 
+## Kubernetes
+- [Big picture](03-kubernetes/README.md) — why K8s, desired state + reconciliation, kind vs kubectl
+- [Components](03-kubernetes/components.md) — control plane vs node, request lifecycle
+- [Cheatsheet](03-kubernetes/cheatsheet.md) — kind + kubectl commands
+
 ## Kubernetes vs AWS
 Kubernetes is open source and runs anywhere. On AWS: **ECS/Fargate** (AWS's own, simpler) or **EKS** (managed K8s, control plane costs ~$73/month even idle). Concepts can be learned locally with **kind** for free.
 > "I know the K8s concepts and ran it locally with Helm; on AWS I'd use EKS, or ECS when the team doesn't need K8s."
