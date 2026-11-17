@@ -81,3 +81,12 @@ DNS (CoreDNS — practically required) · Dashboard (web UI) · resource monitor
   new scales 0→3 while old scales 3→0 **in small steps** (defaults maxSurge 25% = 1 extra pod, maxUnavailable 25% = 0 down
   for 3 replicas → never fewer than 3 ready = zero downtime). Old ReplicaSet **kept at 0**.
   `kubectl rollout undo deployment/web` → **reuses** the old ReplicaSet (scales it back to 3), no new one. That's why it's kept.
+- *"Everything goes through the API server — really?"* — **Yes.** Components never call each other. Each one **watches** the
+  API server and **writes back** to it (controller writes "3 pods, no node" → scheduler watches, writes "pod → node X" →
+  kubelet on X watches, starts it, writes "Running"). **Only the API server talks to etcd.**
+  (Small exception: `kubectl logs` / `exec` → API server calls the kubelet directly.)
+- *"Where did the nginx image come from? I never pulled it."* — `nginx` = `docker.io/library/nginx:latest` (Docker Hub).
+  **containerd inside the node** pulled it, not your Mac's Docker. Check: `docker exec learn-control-plane crictl images`.
+- *"Do pods have internet?"* — **Yes, open by default** (outbound internet + every other pod). Lock down later with:
+  **NetworkPolicy** (pod firewall) · **ServiceAccount + RBAC** (what the pod may do in K8s) · on EKS an **IAM role per
+  ServiceAccount** (IRSA / Pod Identity) for AWS access.
