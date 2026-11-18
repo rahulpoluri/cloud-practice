@@ -90,3 +90,12 @@ kind = the builder; kubectl = the remote control. On AWS, EKS replaces kind, kub
 - *ECS vs EKS* — **ECS** = AWS's own, simpler container service (AWS-only); **Fargate** = don't manage machines, pay per container;
   **EKS** = real Kubernetes on AWS (portable, more complex, ~$73/month control plane even idle).
 - *"Didn't we install kubectl?"* — kubectl was already there (comes with Docker Desktop). kind ≠ kubectl: one builds, one talks.
+
+## Service (preview — hands-on next)
+- Pods get a **new IP** every time they're replaced → nobody can call a pod by IP.
+- **Service** = stable name + IP in front of pods, finds them by **label** (`app=web`), load-balances. Others call `http://web`
+  (CoreDNS → Service IP → kube-proxy → a live pod). Analogy: call hotel **reception**, not room 214.
+- Types: **ClusterIP** (default, inside cluster) · **NodePort** (port on every node, testing) · **LoadBalancer** (cloud LB, public).
+- **Deployment file = what to run + how many** (replicas + pod template with labels). **Service file = how to reach them**
+  (`selector` = same label, `port` → `targetPort`). They never reference each other — **the label is the link**.
+  `kubectl apply -f deployment.yaml -f service.yaml`

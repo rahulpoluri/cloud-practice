@@ -90,3 +90,18 @@ DNS (CoreDNS — practically required) · Dashboard (web UI) · resource monitor
 - *"Do pods have internet?"* — **Yes, open by default** (outbound internet + every other pod). Lock down later with:
   **NetworkPolicy** (pod firewall) · **ServiceAccount + RBAC** (what the pod may do in K8s) · on EKS an **IAM role per
   ServiceAccount** (IRSA / Pod Identity) for AWS access.
+- *"Do databases run on Kubernetes?"* — **Can, mostly don't.** K8s was built for stateless pods; a DB needs a fixed identity
+  + its own disk. Done via **StatefulSet** (stable names `db-0`, `db-1` + own disk each) + an **operator** (e.g. CloudNativePG:
+  failover, backups). Most teams: apps on K8s, DB **managed outside** (RDS/Aurora).
+- *"DB on 100 pods — where is the data, how do I find it?"* — Never 100 identical DB pods. Postgres = ~3 pods: `db-0` primary,
+  `db-1/2` replicas (full copy via WAL). Each pod has its **own PersistentVolume** (EBS) that survives the pod and re-attaches.
+  App finds it via Services: `db-rw` → primary, `db-ro` → replicas (operator repoints on failover).
+  Too big for one machine → **sharding** (split by key, router/directory knows where = D2's DB banks + tenant directory).
+  Rule: stateless app = many identical pods · DB = few pods, each with its own disk + role.
+- *"Why are pods 'ephemeral' — do they crash more than machines?"* — No, K8s **moves/kills them on purpose**: every deploy,
+  scale-down, node drain for upgrades, autoscaler packing to save money, spot reclaim, OOMKilled over memory limit (+ real crashes).
+  Ephemeral = a **contract**: "may kill/move your pod anytime — keep nothing important inside". Pod = hotel room, data = safe at reception.
+- *"Master + worker nodes — do the commands change?"* — **No.** kubectl only talks to the API server; 1 node or 100, same commands.
+  Only cluster creation changes: kind config (1 control-plane + 2 workers) · `kubeadm init` + `kubeadm join` · EKS (AWS hides the
+  control plane). Control-plane node has a **taint** ("do not disturb") so normal pods go to workers; kind's single node removes it.
+  ("master" = old name for control plane.)
